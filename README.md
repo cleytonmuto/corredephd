@@ -1,4 +1,4 @@
-# Daily Blog Platform
+# Corre de PhD Platform
 
 A modern blog platform built with React, TypeScript, and Firebase. The owner can post daily messages in HTML format, and visitors can view all recent posts.
 

@@ -115,7 +115,7 @@ export default function PostDetail() {
         <header className="blog-header">
           <div className="header-left">
             <Link to="/" className="blog-title-link">
-              <h1 className="blog-title">Daily Blog</h1>
+              <h1 className="blog-title">Corre de PhD</h1>
             </Link>
             {user && (
               <div className="user-info">

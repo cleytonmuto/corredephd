@@ -8,7 +8,7 @@ interface ShareButtonsProps {
 export default function ShareButtons({ postId, postTitle }: ShareButtonsProps) {
   // Get the current post URL
   const postUrl = `${window.location.origin}/post/${postId}`;
-  const shareText = `${postTitle} - Daily Blog`;
+  const shareText = `${postTitle} - Corre de PhD`;
 
   const handleFacebookShare = () => {
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;

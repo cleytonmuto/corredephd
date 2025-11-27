@@ -83,7 +83,7 @@ export default function Home() {
     <div className="home-container">
       <header className="blog-header">
         <div className="header-left">
-          <h1 className="blog-title">Daily Blog</h1>
+          <h1 className="blog-title">Corre de PhD</h1>
           {user && (
             <div className="user-info">
               <span className="user-greeting">Welcome,</span>
