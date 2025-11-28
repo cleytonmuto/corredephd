@@ -36,25 +36,27 @@ export default function EditPost() {
         const canEditOwn = await canEditOwnPosts(currentUser.uid);
         
         // Check if user can edit (either can edit any post, or can edit own posts and this is their post)
+        let userCanEdit = false;
         if (postAuthorId) {
           const isOwnPost = currentUser.uid === postAuthorId;
-          setCanEdit(canEditAny || (canEditOwn && isOwnPost));
+          userCanEdit = canEditAny || (canEditOwn && isOwnPost);
+          setCanEdit(userCanEdit);
+          
+          if (!userCanEdit) {
+            if (!isOwnPost && !canEditAny) {
+              alert('You do not have permission to edit this post.');
+              navigate('/');
+            } else if (isOwnPost && !canEditOwn) {
+              alert('You do not have permission to edit posts.');
+              navigate('/');
+            }
+          }
         } else {
-          setCanEdit(canEditAny || canEditOwn);
+          userCanEdit = canEditAny || canEditOwn;
+          setCanEdit(userCanEdit);
         }
         
         setCheckingPermission(false);
-        
-        if (!canEdit && postAuthorId) {
-          const isOwnPost = currentUser.uid === postAuthorId;
-          if (!isOwnPost && !canEditAny) {
-            alert('You do not have permission to edit this post.');
-            navigate('/');
-          } else if (isOwnPost && !canEditOwn) {
-            alert('You do not have permission to edit posts.');
-            navigate('/');
-          }
-        }
       }
     });
     return () => unsubscribe();
@@ -177,30 +179,23 @@ export default function EditPost() {
     setLoading(true);
     try {
       const postRef = doc(db, 'posts', id);
-      const updateData: any = {
+      const updateData: {
+        title: string;
+        content: string;
+        updatedAt: Timestamp;
+        categories: string[];
+        tags: string[];
+        featuredImage: string | null;
+      } = {
         title: title.trim(),
         content: content.trim(),
         updatedAt: Timestamp.now(),
+        categories: categories.length > 0 ? categories : [],
+        tags: tags.length > 0 ? tags : [],
+        featuredImage: featuredImage || null,
       };
 
-      if (categories.length > 0) {
-        updateData.categories = categories;
-      } else {
-        updateData.categories = [];
-      }
-
-      if (tags.length > 0) {
-        updateData.tags = tags;
-      } else {
-        updateData.tags = [];
-      }
-
-      if (featuredImage) {
-        updateData.featuredImage = featuredImage;
-      } else {
-        updateData.featuredImage = null;
-      }
-
+      // Update the post document
       await updateDoc(postRef, updateData);
       
       // Navigate to home

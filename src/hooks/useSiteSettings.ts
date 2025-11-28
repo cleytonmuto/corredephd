@@ -29,6 +29,7 @@ export function useSiteSettings() {
     applyColorVariables(siteSettings.primaryColor, siteSettings.secondaryColor);
   };
 
+  // refreshSettings is exported for potential future use (e.g., after saving settings)
   return { settings, loading, refreshSettings };
 }
 

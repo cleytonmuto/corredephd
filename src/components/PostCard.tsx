@@ -77,7 +77,7 @@ export default function PostCard({ post, isEditor, onDelete }: PostCardProps) {
               <span className="post-date">
                 <span className="date-label">Created:</span> {formatDate(post.createdAt)}
               </span>
-              {post.updatedAt && post.updatedAt.getTime() !== post.createdAt.getTime() && (
+              {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && (
                 <span className="post-updated">
                   <span className="date-label">Updated:</span> {formatDate(post.updatedAt)}
                 </span>

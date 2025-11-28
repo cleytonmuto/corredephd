@@ -87,6 +87,8 @@ export default function PostDetail() {
         setCanEdit(canEditAny || (canEditOwn && isOwnPost));
       };
       checkPermissions();
+    } else {
+      setCanEdit(false);
     }
   }, [user, post]);
 
@@ -192,7 +194,16 @@ export default function PostDetail() {
               </div>
               <div className="post-meta">
                 <span className="post-author">By {post.authorName}</span>
-                <span className="post-date">{formatDate(post.createdAt)}</span>
+                <div className="post-dates">
+                  <span className="post-date">
+                    <span className="date-label">Created:</span> {formatDate(post.createdAt)}
+                  </span>
+                  {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && (
+                    <span className="post-updated">
+                      <span className="date-label">Updated:</span> {formatDate(post.updatedAt)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             {(post.categories && post.categories.length > 0) || (post.tags && post.tags.length > 0) ? (
