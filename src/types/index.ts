@@ -6,6 +6,9 @@ export interface Post {
   authorId: string;
   authorName: string;
   authorEmail: string;
+  categories?: string[]; // Array of category names
+  tags?: string[]; // Array of tag names
+  featuredImage?: string; // URL to featured image
 }
 
 export interface User {

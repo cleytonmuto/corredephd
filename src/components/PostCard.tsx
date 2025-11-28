@@ -45,6 +45,13 @@ export default function PostCard({ post, isEditor, onDelete }: PostCardProps) {
   return (
     <>
       <article className="post-card">
+        {post.featuredImage && (
+          <div className="post-featured-image">
+            <Link to={`/post/${post.id}`}>
+              <img src={post.featuredImage} alt={post.title} />
+            </Link>
+          </div>
+        )}
         <div className="post-header">
           <div className="post-title-row">
             <Link to={`/post/${post.id}`} className="post-title-link">
@@ -73,6 +80,30 @@ export default function PostCard({ post, isEditor, onDelete }: PostCardProps) {
           className="post-content" 
           dangerouslySetInnerHTML={{ __html: truncatedContent }}
         />
+        {(post.categories && post.categories.length > 0) || (post.tags && post.tags.length > 0) ? (
+          <div className="post-taxonomy">
+            {post.categories && post.categories.length > 0 && (
+              <div className="post-categories">
+                <span className="taxonomy-label">Categories:</span>
+                {post.categories.map((category) => (
+                  <span key={category} className="category-badge">
+                    {category}
+                  </span>
+                ))}
+              </div>
+            )}
+            {post.tags && post.tags.length > 0 && (
+              <div className="post-tags">
+                <span className="taxonomy-label">Tags:</span>
+                {post.tags.map((tag) => (
+                  <span key={tag} className="tag-badge">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
         {isTruncated && (
           <div className="post-read-more">
             <Link to={`/post/${post.id}`} className="read-more-link">

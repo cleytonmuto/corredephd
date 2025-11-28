@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { isEditor } from '../utils/userProfile';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import MediaUpload from '../components/MediaUpload';
 import './CreatePost.css';
 
 export default function CreatePost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [categoryInput, setCategoryInput] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [featuredImage, setFeaturedImage] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
   const [isUserEditor, setIsUserEditor] = useState(false);
@@ -34,6 +42,58 @@ export default function CreatePost() {
     return () => unsubscribe();
   }, [navigate]);
 
+  const quillModules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'color': [] }, { 'background': [] }],
+        ['link', 'image', 'video'],
+        ['blockquote', 'code-block'],
+        ['clean']
+      ],
+    },
+  }), []);
+
+  const handleAddCategory = () => {
+    const trimmed = categoryInput.trim();
+    if (trimmed && !categories.includes(trimmed)) {
+      setCategories([...categories, trimmed]);
+      setCategoryInput('');
+    }
+  };
+
+  const handleRemoveCategory = (category: string) => {
+    setCategories(categories.filter(c => c !== category));
+  };
+
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setTags(tags.filter(t => t !== tag));
+  };
+
+  const handleMediaUpload = (url: string) => {
+    // Insert image into Quill editor at cursor position
+    const quill = (document.querySelector('.ql-editor') as any)?.__quill;
+    if (quill) {
+      const range = quill.getSelection(true);
+      quill.insertEmbed(range.index, 'image', url, 'user');
+      quill.setSelection(range.index + 1);
+    }
+  };
+
+  const handleFeaturedImageUpload = (url: string) => {
+    setFeaturedImage(url);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -54,18 +114,35 @@ export default function CreatePost() {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'posts'), {
+      const postData: any = {
         title: title.trim(),
         content: content.trim(),
         createdAt: Timestamp.now(),
         authorId: user.uid,
         authorName: user.displayName || 'Anonymous',
         authorEmail: user.email || '',
-      });
+      };
+
+      if (categories.length > 0) {
+        postData.categories = categories;
+      }
+
+      if (tags.length > 0) {
+        postData.tags = tags;
+      }
+
+      if (featuredImage) {
+        postData.featuredImage = featuredImage;
+      }
+
+      await addDoc(collection(db, 'posts'), postData);
 
       // Reset form
       setTitle('');
       setContent('');
+      setCategories([]);
+      setTags([]);
+      setFeaturedImage('');
       
       // Navigate to home
       navigate('/');
@@ -111,29 +188,129 @@ export default function CreatePost() {
               required
             />
           </div>
+
+          <div className="form-group">
+            <label>Featured Image (Optional)</label>
+            {featuredImage && (
+              <div className="featured-image-preview">
+                <img src={featuredImage} alt="Featured" />
+                <button
+                  type="button"
+                  onClick={() => setFeaturedImage('')}
+                  className="remove-image-btn"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+            <MediaUpload
+              onUploadComplete={handleFeaturedImageUpload}
+              accept="image/*"
+              label=""
+            />
+          </div>
           
           <div className="form-group">
-            <label htmlFor="content">Content (HTML)</label>
-            <div className="content-editor-container">
-              <div className="editor-section">
-                <label htmlFor="content" className="section-label">Editor</label>
-                <textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Enter post content in HTML format"
-                  rows={15}
-                  required
-                />
-                <small className="form-hint">
-                  You can use HTML tags like &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, etc.
-                </small>
-              </div>
-              <div className="preview-section">
-                <label className="section-label">Preview</label>
-                <div className="preview-content" dangerouslySetInnerHTML={{ __html: content || '<em class="preview-placeholder">Your HTML content will appear here...</em>' }} />
-              </div>
+            <label htmlFor="content">Content</label>
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              modules={quillModules}
+              placeholder="Write your post content here..."
+              className="rich-text-editor"
+            />
+            <div className="editor-actions">
+              <MediaUpload
+                onUploadComplete={handleMediaUpload}
+                accept="image/*,video/*"
+                label="Upload Media to Insert"
+              />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="categories">Categories</label>
+            <div className="tag-input-group">
+              <input
+                type="text"
+                id="categories"
+                value={categoryInput}
+                onChange={(e) => setCategoryInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCategory();
+                  }
+                }}
+                placeholder="Enter category and press Enter"
+              />
+              <button
+                type="button"
+                onClick={handleAddCategory}
+                className="add-tag-btn"
+              >
+                Add
+              </button>
+            </div>
+            {categories.length > 0 && (
+              <div className="tag-list">
+                {categories.map((category) => (
+                  <span key={category} className="tag-item">
+                    {category}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(category)}
+                      className="tag-remove"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="tags">Tags</label>
+            <div className="tag-input-group">
+              <input
+                type="text"
+                id="tags"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Enter tag and press Enter"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="add-tag-btn"
+              >
+                Add
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div className="tag-list">
+                {tags.map((tag) => (
+                  <span key={tag} className="tag-item">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="tag-remove"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="form-actions">

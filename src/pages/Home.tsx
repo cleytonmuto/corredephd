@@ -10,9 +10,14 @@ import './Home.css';
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(auth.currentUser);
   const [isUserEditor, setIsUserEditor] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedTag, setSelectedTag] = useState<string>('');
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -34,9 +39,12 @@ export default function Home() {
       const querySnapshot = await getDocs(q);
       
       const postsData: Post[] = [];
+      const categoriesSet = new Set<string>();
+      const tagsSet = new Set<string>();
+      
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        postsData.push({
+        const post: Post = {
           id: doc.id,
           title: data.title,
           content: data.content,
@@ -44,10 +52,26 @@ export default function Home() {
           authorId: data.authorId,
           authorName: data.authorName,
           authorEmail: data.authorEmail,
-        });
+          categories: data.categories || [],
+          tags: data.tags || [],
+          featuredImage: data.featuredImage || undefined,
+        };
+        
+        postsData.push(post);
+        
+        // Collect all categories and tags
+        if (post.categories) {
+          post.categories.forEach(cat => categoriesSet.add(cat));
+        }
+        if (post.tags) {
+          post.tags.forEach(tag => tagsSet.add(tag));
+        }
       });
       
       setPosts(postsData);
+      setFilteredPosts(postsData);
+      setAllCategories(Array.from(categoriesSet).sort());
+      setAllTags(Array.from(tagsSet).sort());
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
@@ -58,6 +82,24 @@ export default function Home() {
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    let filtered = [...posts];
+    
+    if (selectedCategory) {
+      filtered = filtered.filter(post => 
+        post.categories && post.categories.includes(selectedCategory)
+      );
+    }
+    
+    if (selectedTag) {
+      filtered = filtered.filter(post => 
+        post.tags && post.tags.includes(selectedTag)
+      );
+    }
+    
+    setFilteredPosts(filtered);
+  }, [selectedCategory, selectedTag, posts]);
 
   const handleDeletePost = async (postId: string) => {
     try {
@@ -108,13 +150,60 @@ export default function Home() {
       </header>
 
       <main className="posts-container">
+        {!loading && (allCategories.length > 0 || allTags.length > 0) && (
+          <div className="filters-section">
+            <div className="filter-group">
+              <label htmlFor="category-filter">Filter by Category:</label>
+              <select
+                id="category-filter"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Categories</option>
+                {allCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="tag-filter">Filter by Tag:</label>
+              <select
+                id="tag-filter"
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Tags</option>
+                {allTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+            {(selectedCategory || selectedTag) && (
+              <button
+                onClick={() => {
+                  setSelectedCategory('');
+                  setSelectedTag('');
+                }}
+                className="clear-filters-btn"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
         {loading ? (
           <div className="loading">Loading posts...</div>
-        ) : posts.length === 0 ? (
-          <div className="no-posts">No posts yet. Check back soon!</div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="no-posts">
+            {posts.length === 0 
+              ? 'No posts yet. Check back soon!' 
+              : 'No posts match your filters.'}
+          </div>
         ) : (
           <div className="posts-list">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <PostCard 
                 key={post.id} 
                 post={post} 

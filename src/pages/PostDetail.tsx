@@ -52,6 +52,9 @@ export default function PostDetail() {
             authorId: data.authorId,
             authorName: data.authorName,
             authorEmail: data.authorEmail,
+            categories: data.categories || [],
+            tags: data.tags || [],
+            featuredImage: data.featuredImage || undefined,
           });
         } else {
           alert('Post not found.');
@@ -142,6 +145,11 @@ export default function PostDetail() {
 
         <main className="post-detail-main">
           <article className="post-detail-card">
+            {post.featuredImage && (
+              <div className="post-detail-featured-image">
+                <img src={post.featuredImage} alt={post.title} />
+              </div>
+            )}
             <div className="post-detail-header">
               <div className="post-detail-title-row">
                 <h1 className="post-detail-title">{post.title}</h1>
@@ -164,6 +172,30 @@ export default function PostDetail() {
                 <span className="post-date">{formatDate(post.createdAt)}</span>
               </div>
             </div>
+            {(post.categories && post.categories.length > 0) || (post.tags && post.tags.length > 0) ? (
+              <div className="post-detail-taxonomy">
+                {post.categories && post.categories.length > 0 && (
+                  <div className="post-categories">
+                    <span className="taxonomy-label">Categories:</span>
+                    {post.categories.map((category) => (
+                      <span key={category} className="category-badge">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="post-tags">
+                    <span className="taxonomy-label">Tags:</span>
+                    {post.tags.map((tag) => (
+                      <span key={tag} className="tag-badge">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
             <div 
               className="post-detail-content" 
               dangerouslySetInnerHTML={{ __html: post.content }}
