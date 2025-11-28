@@ -9,6 +9,18 @@
   display: inline-block;
 }
 
+.site-branding {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
 .post-detail-main {
   max-width: 900px;
   margin: 0 auto;

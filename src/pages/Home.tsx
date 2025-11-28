@@ -19,15 +19,20 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         const canCreateStatus = await canCreatePosts(currentUser.uid);
+        const adminStatus = await isAdmin(currentUser.uid);
         setCanCreate(canCreateStatus);
+        setIsAdminUser(adminStatus);
       } else {
         setCanCreate(false);
+        setIsAdminUser(false);
       }
     });
     return () => unsubscribe();
@@ -144,7 +149,12 @@ export default function Home() {
     <div className="home-container">
       <header className="blog-header">
         <div className="header-left">
-          <h1 className="blog-title">Corre de PhD</h1>
+          <div className="site-branding">
+            {settings?.siteLogo && (
+              <img src={settings.siteLogo} alt={settings.siteTitle} className="site-logo" />
+            )}
+            <h1 className="blog-title">{settings?.siteTitle || 'Corre de PhD'}</h1>
+          </div>
           {user && (
             <div className="user-info">
               <span className="user-greeting">Welcome,</span>
@@ -157,6 +167,9 @@ export default function Home() {
             <>
               {canCreate && (
                 <Link to="/create-post" className="nav-link">Create Post</Link>
+              )}
+              {isAdminUser && (
+                <Link to="/site-settings" className="nav-link">Settings</Link>
               )}
               <button onClick={handleLogout} className="nav-link nav-link-logout">
                 Logout

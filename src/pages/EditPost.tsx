@@ -4,8 +4,8 @@ import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { canEditAnyPost, canEditOwnPosts } from '../utils/userProfile';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import MediaUrlInput from '../components/MediaUrlInput';
 import './CreatePost.css';
 

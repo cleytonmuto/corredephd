@@ -42,3 +42,26 @@ export interface Comment {
   parentId?: string; // For nested/reply comments
   status?: 'approved' | 'pending' | 'spam' | 'trash';
 }
+
+export type Theme = 'default' | 'dark' | 'minimal' | 'modern' | 'classic';
+
+export interface SiteSettings {
+  id: string;
+  siteTitle: string;
+  siteDescription: string;
+  siteLogo?: string;
+  theme: Theme;
+  customCSS?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  updatedAt: Date;
+  updatedBy: string;
+}
+
+export interface MenuItem {
+  id: string;
+  label: string;
+  url: string;
+  order: number;
+  parentId?: string;
+}

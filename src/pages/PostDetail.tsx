@@ -5,6 +5,7 @@ import { auth, db } from '../firebase/config';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { Post } from '../types';
 import { canEditAnyPost, canEditOwnPosts } from '../utils/userProfile';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ShareButtons from '../components/ShareButtons';
 import Comments from '../components/Comments';
@@ -18,6 +19,7 @@ export default function PostDetail() {
   const [canEdit, setCanEdit] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -133,7 +135,12 @@ export default function PostDetail() {
         <header className="blog-header">
           <div className="header-left">
             <Link to="/" className="blog-title-link">
-              <h1 className="blog-title">Corre de PhD</h1>
+              <div className="site-branding">
+                {settings?.siteLogo && (
+                  <img src={settings.siteLogo} alt={settings.siteTitle} className="site-logo" />
+                )}
+                <h1 className="blog-title">{settings?.siteTitle || 'Corre de PhD'}</h1>
+              </div>
             </Link>
             {user && (
               <div className="user-info">
