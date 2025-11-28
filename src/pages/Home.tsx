@@ -4,7 +4,8 @@ import { collection, query, orderBy, getDocs, doc, deleteDoc } from 'firebase/fi
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { Post } from '../types';
-import { canCreatePosts } from '../utils/userProfile';
+import { canCreatePosts, isAdmin } from '../utils/userProfile';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import PostCard from '../components/PostCard';
 import './Home.css';
 
