@@ -329,7 +329,8 @@
 
 .post-meta {
   display: flex;
-  gap: 1.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
   font-size: 0.9rem;
   color: #666;
 }
@@ -337,6 +338,30 @@
 .post-author {
   font-weight: 600;
   color: #667eea;
+}
+
+.post-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.post-date,
+.post-updated {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.date-label {
+  font-weight: 600;
+  color: #888;
+}
+
+.post-updated {
+  color: #667eea;
+  font-style: italic;
 }
 
 .post-content {
@@ -549,6 +574,11 @@
     flex-direction: column;
     gap: 0.5rem;
     font-size: 0.85rem;
+  }
+
+  .post-dates {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }
 

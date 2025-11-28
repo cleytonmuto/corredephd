@@ -54,6 +54,7 @@ export default function PostDetail() {
             title: data.title,
             content: data.content,
             createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate(),
             authorId: data.authorId,
             authorName: data.authorName,
             authorEmail: data.authorEmail,

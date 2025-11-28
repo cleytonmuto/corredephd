@@ -3,6 +3,7 @@ export interface Post {
   title: string;
   content: string; // HTML content
   createdAt: Date;
+  updatedAt?: Date; // Date when post was last updated
   authorId: string;
   authorName: string;
   authorEmail: string;

@@ -73,7 +73,16 @@ export default function PostCard({ post, isEditor, onDelete }: PostCardProps) {
           </div>
           <div className="post-meta">
             <span className="post-author">By {post.authorName}</span>
-            <span className="post-date">{formatDate(post.createdAt)}</span>
+            <div className="post-dates">
+              <span className="post-date">
+                <span className="date-label">Created:</span> {formatDate(post.createdAt)}
+              </span>
+              {post.updatedAt && post.updatedAt.getTime() !== post.createdAt.getTime() && (
+                <span className="post-updated">
+                  <span className="date-label">Updated:</span> {formatDate(post.updatedAt)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div 
