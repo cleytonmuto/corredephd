@@ -1,0 +1,47 @@
+.media-url-input {
+  margin-bottom: 1rem;
+}
+
+.media-url-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.media-url-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.media-url-field {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.media-url-field:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.url-error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.url-hint {
+  display: block;
+  color: #666;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+

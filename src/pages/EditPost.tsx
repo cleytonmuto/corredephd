@@ -3,10 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { isEditor } from '../utils/userProfile';
+import { canEditAnyPost, canEditOwnPosts } from '../utils/userProfile';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import MediaUpload from '../components/MediaUpload';
+import MediaUrlInput from '../components/MediaUrlInput';
 import './CreatePost.css';
 
 export default function EditPost() {
@@ -21,7 +21,8 @@ export default function EditPost() {
   const [loading, setLoading] = useState(false);
   const [loadingPost, setLoadingPost] = useState(true);
   const [user, setUser] = useState(auth.currentUser);
-  const [isUserEditor, setIsUserEditor] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [postAuthorId, setPostAuthorId] = useState<string>('');
   const [checkingPermission, setCheckingPermission] = useState(true);
   const navigate = useNavigate();
 
@@ -31,18 +32,33 @@ export default function EditPost() {
         navigate('/login');
       } else {
         setUser(currentUser);
-        const editorStatus = await isEditor(currentUser.uid);
-        setIsUserEditor(editorStatus);
+        const canEditAny = await canEditAnyPost(currentUser.uid);
+        const canEditOwn = await canEditOwnPosts(currentUser.uid);
+        
+        // Check if user can edit (either can edit any post, or can edit own posts and this is their post)
+        if (postAuthorId) {
+          const isOwnPost = currentUser.uid === postAuthorId;
+          setCanEdit(canEditAny || (canEditOwn && isOwnPost));
+        } else {
+          setCanEdit(canEditAny || canEditOwn);
+        }
+        
         setCheckingPermission(false);
         
-        if (!editorStatus) {
-          alert('You do not have permission to edit posts. Only editors can edit posts.');
-          navigate('/');
+        if (!canEdit && postAuthorId) {
+          const isOwnPost = currentUser.uid === postAuthorId;
+          if (!isOwnPost && !canEditAny) {
+            alert('You do not have permission to edit this post.');
+            navigate('/');
+          } else if (isOwnPost && !canEditOwn) {
+            alert('You do not have permission to edit posts.');
+            navigate('/');
+          }
         }
       }
     });
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, postAuthorId]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -62,6 +78,7 @@ export default function EditPost() {
           setCategories(data.categories || []);
           setTags(data.tags || []);
           setFeaturedImage(data.featuredImage || '');
+          setPostAuthorId(data.authorId);
         } else {
           alert('Post not found.');
           navigate('/');
@@ -75,10 +92,10 @@ export default function EditPost() {
       }
     };
 
-    if (isUserEditor && !checkingPermission) {
+    if (user && !checkingPermission) {
       fetchPost();
     }
-  }, [id, isUserEditor, checkingPermission, navigate]);
+  }, [id, user, checkingPermission, navigate]);
 
   const quillModules = useMemo(() => ({
     toolbar: {
@@ -118,17 +135,19 @@ export default function EditPost() {
     setTags(tags.filter(t => t !== tag));
   };
 
-  const handleMediaUpload = (url: string) => {
+  const handleMediaUrlChange = (url: string) => {
     // Insert image into Quill editor at cursor position
-    const quill = (document.querySelector('.ql-editor') as any)?.__quill;
-    if (quill) {
-      const range = quill.getSelection(true);
-      quill.insertEmbed(range.index, 'image', url, 'user');
-      quill.setSelection(range.index + 1);
+    if (url) {
+      const quill = (document.querySelector('.ql-editor') as any)?.__quill;
+      if (quill) {
+        const range = quill.getSelection(true);
+        quill.insertEmbed(range.index, 'image', url, 'user');
+        quill.setSelection(range.index + 1);
+      }
     }
   };
 
-  const handleFeaturedImageUpload = (url: string) => {
+  const handleFeaturedImageUrlChange = (url: string) => {
     setFeaturedImage(url);
   };
 
@@ -140,8 +159,8 @@ export default function EditPost() {
       return;
     }
 
-    if (!isUserEditor) {
-      alert('You do not have permission to edit posts. Only editors can edit posts.');
+    if (!canEdit) {
+      alert('You do not have permission to edit this post.');
       return;
     }
 
@@ -198,12 +217,12 @@ export default function EditPost() {
     return <div className="create-post-container">Loading...</div>;
   }
 
-  if (!isUserEditor) {
+  if (!canEdit && !checkingPermission) {
     return (
       <div className="create-post-container">
         <div className="create-post-card">
           <h2>Access Denied</h2>
-          <p>You do not have permission to edit posts. Only users with editor profile can edit posts.</p>
+          <p>You do not have permission to edit this post.</p>
           <button onClick={() => navigate('/')} className="btn btn-primary">
             Go to Home
           </button>
@@ -230,10 +249,12 @@ export default function EditPost() {
           </div>
 
           <div className="form-group">
-            <label>Featured Image (Optional)</label>
+            <label>Featured Image URL (Optional)</label>
             {featuredImage && (
               <div className="featured-image-preview">
-                <img src={featuredImage} alt="Featured" />
+                <img src={featuredImage} alt="Featured" onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }} />
                 <button
                   type="button"
                   onClick={() => setFeaturedImage('')}
@@ -243,10 +264,10 @@ export default function EditPost() {
                 </button>
               </div>
             )}
-            <MediaUpload
-              onUploadComplete={handleFeaturedImageUpload}
-              accept="image/*"
-              label=""
+            <MediaUrlInput
+              onUrlChange={handleFeaturedImageUrlChange}
+              placeholder="https://example.com/image.jpg"
+              value={featuredImage}
             />
           </div>
           
@@ -261,10 +282,10 @@ export default function EditPost() {
               className="rich-text-editor"
             />
             <div className="editor-actions">
-              <MediaUpload
-                onUploadComplete={handleMediaUpload}
-                accept="image/*,video/*"
-                label="Upload Media to Insert"
+              <MediaUrlInput
+                onUrlChange={handleMediaUrlChange}
+                label="Insert Media URL"
+                placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
               />
             </div>
           </div>

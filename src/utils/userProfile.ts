@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import type { UserProfile } from '../types';
+import type { UserProfile, UserRole } from '../types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 /**
@@ -34,7 +34,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
  */
 export async function createUserProfile(
   user: FirebaseUser,
-  profile: 'reader' | 'editor' = 'reader'
+  profile: UserRole = 'subscriber'
 ): Promise<UserProfile> {
   try {
     const now = Timestamp.now();
@@ -69,6 +69,58 @@ export async function createUserProfile(
  */
 export async function isEditor(userId: string): Promise<boolean> {
   const profile = await getUserProfile(userId);
-  return profile?.profile === 'editor';
+  return profile?.profile === 'editor' || profile?.profile === 'admin';
+}
+
+/**
+ * Check if user is an admin
+ */
+export async function isAdmin(userId: string): Promise<boolean> {
+  const profile = await getUserProfile(userId);
+  return profile?.profile === 'admin';
+}
+
+/**
+ * Check if user can create posts (admin, editor, author)
+ */
+export async function canCreatePosts(userId: string): Promise<boolean> {
+  const profile = await getUserProfile(userId);
+  const role = profile?.profile;
+  return role === 'admin' || role === 'editor' || role === 'author';
+}
+
+/**
+ * Check if user can edit any post (admin, editor)
+ */
+export async function canEditAnyPost(userId: string): Promise<boolean> {
+  const profile = await getUserProfile(userId);
+  const role = profile?.profile;
+  return role === 'admin' || role === 'editor';
+}
+
+/**
+ * Check if user can edit their own posts (admin, editor, author, contributor)
+ */
+export async function canEditOwnPosts(userId: string): Promise<boolean> {
+  const profile = await getUserProfile(userId);
+  const role = profile?.profile;
+  return role === 'admin' || role === 'editor' || role === 'author' || role === 'contributor';
+}
+
+/**
+ * Check if user can moderate comments (admin, editor)
+ */
+export async function canModerateComments(userId: string): Promise<boolean> {
+  const profile = await getUserProfile(userId);
+  const role = profile?.profile;
+  return role === 'admin' || role === 'editor';
+}
+
+/**
+ * Get user role
+ */
+export async function getUserRole(userId: string): Promise<UserRole | null> {
+  const profile = await getUserProfile(userId);
+  return profile?.profile || null;
 }
 

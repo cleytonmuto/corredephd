@@ -4,9 +4,10 @@ import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { Post } from '../types';
-import { isEditor } from '../utils/userProfile';
+import { canEditAnyPost, canEditOwnPosts } from '../utils/userProfile';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ShareButtons from '../components/ShareButtons';
+import Comments from '../components/Comments';
 import './PostDetail.css';
 
 export default function PostDetail() {
@@ -14,18 +15,20 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(auth.currentUser);
-  const [isUserEditor, setIsUserEditor] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        const editorStatus = await isEditor(currentUser.uid);
-        setIsUserEditor(editorStatus);
+      if (currentUser && post) {
+        const canEditAny = await canEditAnyPost(currentUser.uid);
+        const canEditOwn = await canEditOwnPosts(currentUser.uid);
+        const isOwnPost = currentUser.uid === post.authorId;
+        setCanEdit(canEditAny || (canEditOwn && isOwnPost));
       } else {
-        setIsUserEditor(false);
+        setCanEdit(false);
       }
     });
     return () => unsubscribe();
@@ -71,6 +74,18 @@ export default function PostDetail() {
 
     fetchPost();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (user && post) {
+      const checkPermissions = async () => {
+        const canEditAny = await canEditAnyPost(user.uid);
+        const canEditOwn = await canEditOwnPosts(user.uid);
+        const isOwnPost = user.uid === post.authorId;
+        setCanEdit(canEditAny || (canEditOwn && isOwnPost));
+      };
+      checkPermissions();
+    }
+  }, [user, post]);
 
   const handleDeleteClick = () => {
     setShowDeleteDialog(true);
@@ -130,7 +145,7 @@ export default function PostDetail() {
           <nav className="blog-nav">
             {user ? (
               <>
-                {isUserEditor && (
+                {canEdit && post && (
                   <Link to="/create-post" className="nav-link">Create Post</Link>
                 )}
                 <button onClick={() => signOut(auth)} className="nav-link nav-link-logout">
@@ -153,7 +168,7 @@ export default function PostDetail() {
             <div className="post-detail-header">
               <div className="post-detail-title-row">
                 <h1 className="post-detail-title">{post.title}</h1>
-                {isUserEditor && (
+                {canEdit && (
                   <div className="post-actions">
                     <Link to={`/edit-post/${post.id}`} className="post-action-btn post-edit-btn">
                       Edit
@@ -201,6 +216,7 @@ export default function PostDetail() {
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
             <ShareButtons postId={post.id} postTitle={post.title} />
+            <Comments postId={post.id} />
             <div className="post-detail-footer">
               <Link to="/" className="back-to-home-link">← Back to Home</Link>
             </div>

@@ -17,10 +17,10 @@ export default function Login() {
     getRedirectResult(auth)
       .then(async (result) => {
         if (result) {
-          // Check if profile exists, create as "reader" if not
+          // Check if profile exists, create as "subscriber" if not
           const existingProfile = await getUserProfile(result.user.uid);
           if (!existingProfile) {
-            await createUserProfile(result.user, 'reader');
+            await createUserProfile(result.user, 'subscriber');
           }
           navigate('/');
         }
@@ -50,10 +50,10 @@ export default function Login() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      // Check if profile exists, create as "reader" if it doesn't exist (backward compatibility)
+      // Check if profile exists, create as "subscriber" if it doesn't exist (backward compatibility)
       const existingProfile = await getUserProfile(user.uid);
       if (!existingProfile) {
-        await createUserProfile(user, 'reader');
+        await createUserProfile(user, 'subscriber');
       }
       
       // Navigation will happen automatically via onAuthStateChanged
@@ -107,8 +107,8 @@ export default function Login() {
         return;
       }
       
-      // Create new profile as "reader"
-      await createUserProfile(user, 'reader');
+      // Create new profile as "subscriber"
+      await createUserProfile(user, 'subscriber');
       isShowingErrorRef.current = false;
       
       // Navigation will happen automatically via onAuthStateChanged
@@ -183,7 +183,7 @@ export default function Login() {
           </div>
         )}
         <p className="auth-note">
-          New users will be registered as readers. Editor access must be granted manually.
+          New users will be registered as subscribers. Admin, editor, author, or contributor access must be granted manually.
         </p>
         <Link to="/" className="back-link">← Back to Home</Link>
       </div>

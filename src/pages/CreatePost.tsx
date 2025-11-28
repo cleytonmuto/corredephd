@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { isEditor } from '../utils/userProfile';
+import { canCreatePosts } from '../utils/userProfile';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import MediaUpload from '../components/MediaUpload';
+import MediaUrlInput from '../components/MediaUrlInput';
 import './CreatePost.css';
 
 export default function CreatePost() {
@@ -19,7 +19,7 @@ export default function CreatePost() {
   const [featuredImage, setFeaturedImage] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
-  const [isUserEditor, setIsUserEditor] = useState(false);
+  const [canCreate, setCanCreate] = useState(false);
   const [checkingPermission, setCheckingPermission] = useState(true);
   const navigate = useNavigate();
 
@@ -29,12 +29,12 @@ export default function CreatePost() {
         navigate('/login');
       } else {
         setUser(currentUser);
-        const editorStatus = await isEditor(currentUser.uid);
-        setIsUserEditor(editorStatus);
+        const canCreateStatus = await canCreatePosts(currentUser.uid);
+        setCanCreate(canCreateStatus);
         setCheckingPermission(false);
         
-        if (!editorStatus) {
-          alert('You do not have permission to create posts. Only editors can create posts.');
+        if (!canCreateStatus) {
+          alert('You do not have permission to create posts. Only admins, editors, and authors can create posts.');
           navigate('/');
         }
       }
@@ -80,17 +80,19 @@ export default function CreatePost() {
     setTags(tags.filter(t => t !== tag));
   };
 
-  const handleMediaUpload = (url: string) => {
+  const handleMediaUrlChange = (url: string) => {
     // Insert image into Quill editor at cursor position
-    const quill = (document.querySelector('.ql-editor') as any)?.__quill;
-    if (quill) {
-      const range = quill.getSelection(true);
-      quill.insertEmbed(range.index, 'image', url, 'user');
-      quill.setSelection(range.index + 1);
+    if (url) {
+      const quill = (document.querySelector('.ql-editor') as any)?.__quill;
+      if (quill) {
+        const range = quill.getSelection(true);
+        quill.insertEmbed(range.index, 'image', url, 'user');
+        quill.setSelection(range.index + 1);
+      }
     }
   };
 
-  const handleFeaturedImageUpload = (url: string) => {
+  const handleFeaturedImageUrlChange = (url: string) => {
     setFeaturedImage(url);
   };
 
@@ -102,8 +104,8 @@ export default function CreatePost() {
       return;
     }
 
-    if (!isUserEditor) {
-      alert('You do not have permission to create posts. Only editors can create posts.');
+    if (!canCreate) {
+      alert('You do not have permission to create posts. Only admins, editors, and authors can create posts.');
       return;
     }
 
@@ -158,12 +160,12 @@ export default function CreatePost() {
     return <div className="create-post-container">Loading...</div>;
   }
 
-  if (!isUserEditor) {
+  if (!canCreate) {
     return (
       <div className="create-post-container">
         <div className="create-post-card">
           <h2>Access Denied</h2>
-          <p>You do not have permission to create posts. Only users with editor profile can create posts.</p>
+          <p>You do not have permission to create posts. Only admins, editors, and authors can create posts.</p>
           <button onClick={() => navigate('/')} className="btn btn-primary">
             Go to Home
           </button>
@@ -190,10 +192,12 @@ export default function CreatePost() {
           </div>
 
           <div className="form-group">
-            <label>Featured Image (Optional)</label>
+            <label>Featured Image URL (Optional)</label>
             {featuredImage && (
               <div className="featured-image-preview">
-                <img src={featuredImage} alt="Featured" />
+                <img src={featuredImage} alt="Featured" onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }} />
                 <button
                   type="button"
                   onClick={() => setFeaturedImage('')}
@@ -203,10 +207,10 @@ export default function CreatePost() {
                 </button>
               </div>
             )}
-            <MediaUpload
-              onUploadComplete={handleFeaturedImageUpload}
-              accept="image/*"
-              label=""
+            <MediaUrlInput
+              onUrlChange={handleFeaturedImageUrlChange}
+              placeholder="https://example.com/image.jpg"
+              value={featuredImage}
             />
           </div>
           
@@ -221,10 +225,10 @@ export default function CreatePost() {
               className="rich-text-editor"
             />
             <div className="editor-actions">
-              <MediaUpload
-                onUploadComplete={handleMediaUpload}
-                accept="image/*,video/*"
-                label="Upload Media to Insert"
+              <MediaUrlInput
+                onUrlChange={handleMediaUrlChange}
+                label="Insert Media URL"
+                placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
               />
             </div>
           </div>
