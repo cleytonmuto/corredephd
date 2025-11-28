@@ -34,8 +34,12 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
       };
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting site settings:', error);
+    // If it's a permission error, provide helpful message
+    if (error?.code === 'permission-denied') {
+      console.warn('Firestore permission denied. Please update your Firestore security rules. See FIRESTORE_RULES.md for details.');
+    }
     return null;
   }
 }
@@ -66,16 +70,47 @@ export async function updateSiteSettings(
 ): Promise<void> {
   try {
     const settingsRef = doc(db, 'site', 'settings');
-    const currentSettings = await getSiteSettingsOrDefault();
     
-    await setDoc(settingsRef, {
-      ...currentSettings,
-      ...settings,
+    // Get current settings to merge with (for fields not being updated)
+    const currentSettings = await getSiteSettings();
+    
+    // Prepare the data to save
+    const dataToSave: any = {
+      // Include current settings as base (excluding id, updatedAt, updatedBy)
+      siteTitle: settings.siteTitle ?? currentSettings?.siteTitle ?? DEFAULT_SETTINGS.siteTitle,
+      siteDescription: settings.siteDescription ?? currentSettings?.siteDescription ?? DEFAULT_SETTINGS.siteDescription,
+      theme: settings.theme ?? currentSettings?.theme ?? DEFAULT_SETTINGS.theme,
+      primaryColor: settings.primaryColor ?? currentSettings?.primaryColor ?? DEFAULT_SETTINGS.primaryColor,
+      secondaryColor: settings.secondaryColor ?? currentSettings?.secondaryColor ?? DEFAULT_SETTINGS.secondaryColor,
       updatedAt: Timestamp.now(),
       updatedBy: userId,
-    }, { merge: true });
-  } catch (error) {
+    };
+    
+    // Handle optional fields (can be explicitly set to empty string or undefined)
+    if (settings.siteLogo !== undefined) {
+      dataToSave.siteLogo = settings.siteLogo || null;
+    } else if (currentSettings?.siteLogo !== undefined) {
+      dataToSave.siteLogo = currentSettings.siteLogo || null;
+    }
+    
+    if (settings.customCSS !== undefined) {
+      dataToSave.customCSS = settings.customCSS || null;
+    } else if (currentSettings?.customCSS !== undefined) {
+      dataToSave.customCSS = currentSettings.customCSS || null;
+    }
+    
+    await setDoc(settingsRef, dataToSave, { merge: true });
+  } catch (error: any) {
     console.error('Error updating site settings:', error);
+    // If it's a permission error, provide helpful message
+    if (error?.code === 'permission-denied') {
+      const errorMessage = 'Permission denied. Please ensure:\n' +
+        '1. Your Firestore security rules allow admin access to site/settings\n' +
+        '2. Your user profile has profile: "admin"\n' +
+        '3. See FIRESTORE_RULES.md for security rules setup';
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
     throw error;
   }
 }
